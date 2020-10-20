@@ -6,6 +6,7 @@ from torch.nn import functional as F
 import pandas as pd
 import pretrainedmodels
 import albumentations
+from .dataloader import ClassificationDataLoader
 
 
 class SEResNext50(nn.Module):
@@ -25,7 +26,7 @@ class SEResNext50(nn.Module):
 
 
 def train(fold):
-    input_path = '/kaggle/input/siim-isic-melanoma-classification/jpeg/train/'
+    train_input_path = '/kaggle/input/siim-isic-melanoma-classification/jpeg/train/'
     device = "cuda" if torch.cuda.is_available() else "cpu"
     epochs = 50
     train_bs = 32
@@ -47,3 +48,27 @@ def train(fold):
         albumentations.Normalize(
             mean, std, max_pixel_value=255, always_apply=True),
     ])
+
+    train_images = df_train.image_name.values.toList()
+    train_images = [os.path.join(train_input_path, i + '.jpg')
+                    for i in train_images]
+    train_targets = df_train.target.values
+
+    valid_images = df_valid.image_name.values.toList()
+    valid_images = [os.path.join(train_input_path, i + '.jpg')
+                    for i in valid_images]
+    valid_targets = df_valid.target.values
+
+    train_ds = ClassificationDataLoader(
+        image_paths=train_images,
+        targets=train_targets,
+        resize=None,
+        augmentations=train_aug
+    )
+
+    valid_ds = ClassificationDataLoader(
+        image_paths=valid_images,
+        targets=valid_targets,
+        resize=None,
+        augmentations=valid_aug
+    )
