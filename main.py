@@ -7,6 +7,7 @@ import pandas as pd
 import pretrainedmodels
 import albumentations
 from .dataloader import ClassificationDataLoader
+from .early_stopping import EarlyStopping
 
 
 class SEResNext50(nn.Module):
@@ -84,3 +85,15 @@ def train(fold):
         batch_size=valid_bs,
         shuffle=False
     )
+
+    model = SEResNext50(pretrained="imagenet")
+    model.to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        patience=3,
+        mode='max'
+    )
+
+    es = EarlyStopping(patience=5)
