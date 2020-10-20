@@ -66,9 +66,21 @@ def train(fold):
         augmentations=train_aug
     )
 
+    train_loader = torch.utils.data.dataloader(
+        train_ds,
+        batch_size=train_bs,
+        shuffle=True
+    )
+
     valid_ds = ClassificationDataLoader(
         image_paths=valid_images,
         targets=valid_targets,
         resize=None,
         augmentations=valid_aug
+    )
+
+    valid_loader = torch.utils.data.dataloader(
+        valid_ds,
+        batch_size=valid_bs,
+        shuffle=False
     )
