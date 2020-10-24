@@ -7,7 +7,7 @@ import pandas as pd
 import pretrainedmodels
 import albumentations
 from sklearn import metrics
-from dataloader import ClassificationDataLoader
+from dataloader import ClassificationLoader
 from early_stopping import EarlyStopping
 from engine import Engine
 
@@ -21,7 +21,7 @@ class SEResNext50(nn.Module):
 
     def forward(self, image, targets):
         bs, _, _, _ = image.shape
-        x = self.model.features(image)
+        x = self.models.features(image)
         x = F.adaptive_avg_pool2d(x, 1)
         x = x.reshape(bs, -1)
         out = self.out(x)
@@ -65,7 +65,7 @@ def train(fold):
                     for i in valid_images]
     valid_targets = df_valid.target.values
 
-    train_ds = ClassificationDataLoader(
+    train_ds = ClassificationLoader(
         image_paths=train_images,
         targets=train_targets,
         resize=None,
@@ -76,7 +76,7 @@ def train(fold):
         train_ds, batch_size=train_bs
     )
 
-    valid_ds = ClassificationDataLoader(
+    valid_ds = ClassificationLoader(
         image_paths=valid_images,
         targets=valid_targets,
         resize=None,
@@ -101,17 +101,17 @@ def train(fold):
 
     for epoch in range(epochs):
         train_loss = Engine.train(
-            train_loader,
-            model,
-            optimizer,
-            device
+            data_loader=train_loader,
+            model=model,
+            optimizer=optimizer,
+            device=device
         )
 
         predictions, valid_loss = Engine.evaluate(
-            train_loader,
-            model,
-            optimizer,
-            device
+            data_loader=valid_loader,
+            model=model,
+            optimizer=optimizer,
+            device=device
         )
         predictions = np.vstack((predictions)).ravel()
         auc = metrics.roc_auc_score(valid_targets, predictions)
