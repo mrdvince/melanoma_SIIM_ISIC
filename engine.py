@@ -5,7 +5,7 @@ __author__: Abhishek Thakur
 import datetime
 import torch
 from tqdm import tqdm
-from ..utils import AverageMeter
+from average_meter import AverageMeter
 
 try:
     from torch.cuda import amp
