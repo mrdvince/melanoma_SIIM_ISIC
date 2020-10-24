@@ -6,8 +6,10 @@ from torch.nn import functional as F
 import pandas as pd
 import pretrainedmodels
 import albumentations
-from .dataloader import ClassificationDataLoader
-from .early_stopping import EarlyStopping
+from sklearn import metrics
+from dataloader import ClassificationDataLoader
+from early_stopping import EarlyStopping
+from engine import Engine
 
 
 class SEResNext50(nn.Module):
@@ -17,17 +19,20 @@ class SEResNext50(nn.Module):
             'se_resnext50_32x4d'](pretrained=pretrained)
         self.out = nn.Linear(2048, 1)
 
-    def forward(self, image):
+    def forward(self, image, targets):
         bs, _, _, _ = image.shape
         x = self.model.features(image)
         x = F.adaptive_avg_pool2d(x, 1)
         x = x.reshape(bs, -1)
         out = self.out(x)
-        return out
+        loss = nn.BCEWithLogitsLoss()(out, targets.reshape(-1, 1).type_as(out))
+        return out, loss
 
 
 def train(fold):
     train_input_path = '/kaggle/input/siim-isic-melanoma-classification/jpeg/train/'
+    model_path = '/kaggle/working/melanoma-SIIM-ISIC'
+    df = pd.read_csv('train_folds.csv')
     device = "cuda" if torch.cuda.is_available() else "cpu"
     epochs = 50
     train_bs = 32
@@ -50,12 +55,12 @@ def train(fold):
             mean, std, max_pixel_value=255, always_apply=True),
     ])
 
-    train_images = df_train.image_name.values.toList()
+    train_images = df_train.image_name.values.tolist()
     train_images = [os.path.join(train_input_path, i + '.jpg')
                     for i in train_images]
     train_targets = df_train.target.values
 
-    valid_images = df_valid.image_name.values.toList()
+    valid_images = df_valid.image_name.values.tolist()
     valid_images = [os.path.join(train_input_path, i + '.jpg')
                     for i in valid_images]
     valid_targets = df_valid.target.values
@@ -67,10 +72,8 @@ def train(fold):
         augmentations=train_aug
     )
 
-    train_loader = torch.utils.data.dataloader(
-        train_ds,
-        batch_size=train_bs,
-        shuffle=True
+    train_loader = torch.utils.data.DataLoader(
+        train_ds, batch_size=train_bs
     )
 
     valid_ds = ClassificationDataLoader(
@@ -80,10 +83,8 @@ def train(fold):
         augmentations=valid_aug
     )
 
-    valid_loader = torch.utils.data.dataloader(
-        valid_ds,
-        batch_size=valid_bs,
-        shuffle=False
+    valid_loader = torch.utils.data.DataLoader(
+        valid_ds, batch_size=valid_bs, shuffle=False, num_workers=4
     )
 
     model = SEResNext50(pretrained="imagenet")
@@ -96,4 +97,32 @@ def train(fold):
         mode='max'
     )
 
-    es = EarlyStopping(patience=5)
+    es = EarlyStopping(patience=5, mode='max')
+
+    for epoch in range(epochs):
+        train_loss = Engine.train(
+            train_loader,
+            model,
+            optimizer,
+            device
+        )
+
+        predictions, valid_loss = Engine.evaluate(
+            train_loader,
+            model,
+            optimizer,
+            device
+        )
+        predictions = np.vstack((predictions)).ravel()
+        auc = metrics.roc_auc_score(valid_targets, predictions)
+        scheduler.step(auc)
+
+        print(f'Epoch= {epoch}, auc= {auc}')
+        es(auc, model, model_path)
+        if es.early_stop:
+            print('Early stopping')
+            break
+
+
+if __name__ == '__main__':
+    train(fold=0)
