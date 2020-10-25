@@ -110,7 +110,6 @@ def train(fold):
         predictions, valid_loss = Engine.evaluate(
             data_loader=valid_loader,
             model=model,
-            optimizer=optimizer,
             device=device
         )
         predictions = np.vstack((predictions)).ravel()
