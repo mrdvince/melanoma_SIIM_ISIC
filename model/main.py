@@ -31,7 +31,7 @@ class SEResNext50(nn.Module):
 
 def train(fold):
     train_input_path = '/kaggle/input/siim-isic-melanoma-classification/jpeg/train/'
-    model_path = '/kaggle/working/melanoma-SIIM-ISIC'
+    model_path = 'checkpoints'
     df = pd.read_csv('train_folds.csv')
     device = "cuda" if torch.cuda.is_available() else "cpu"
     epochs = 50
