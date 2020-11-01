@@ -40,10 +40,8 @@ class SEResnext50_32x4d(nn.Module):
 
         x = self.base_model.features(image)
         x = F.adaptive_avg_pool2d(x, 1).reshape(batch_size, -1)
-
-        out = self.l0(x)
-        loss = nn.BCEWithLogitsLoss()(out, targets.view(-1, 1).type_as(x))
-
+        out = torch.sigmoid(self.l0(x))
+        loss = 0
         return out, loss
 
 
@@ -83,17 +81,17 @@ def api_predict():
             )
             image_file.save(image_location)
 
-            preds = predict(image_path=image_location, model=MODEL)
-            print(preds)
+            preds = predict(image_path=image_location, model=MODEL)[0]
 
-            return render_template('index.html', prediction=1)
+            return render_template('index.html', prediction=preds)
 
-    return render_template('index.html', prediction=0)
+    return render_template('index.html', prediction=preds)
 
 
 if __name__ == '__main__':
     MODEL = SEResnext50_32x4d(pretrained=None)
     MODEL.load_state_dict(torch.load(
         'model/checkpoints/model_fold_4.bin', map_location=torch.device('cpu')))
+    MODEL.eval()
     MODEL.to(DEVICE)
     app.run(debug=True)
