@@ -90,5 +90,5 @@ if __name__ == '__main__':
     MODEL = SEResnext50_32x4d(pretrained=None)
     MODEL.load_state_dict(torch.load(
         'model/checkpoints/model_fold_4.bin', map_location=torch.device('cpu')))
-    MODEL.to(device)
+    MODEL.to(DEVICE)
     app.run(debug=True)

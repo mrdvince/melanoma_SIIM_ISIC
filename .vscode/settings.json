@@ -1,4 +1,8 @@
 {
   "python.linting.enabled": false,
-  "python.formatting.autopep8Args": ["--ignore", "E402"]
+  "python.formatting.autopep8Args": [
+    "--ignore",
+    "E402"
+  ],
+  "python.pythonPath": "/home/vinc3/miniconda3/envs/torch/bin/python"
 }
