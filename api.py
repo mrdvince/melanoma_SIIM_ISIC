@@ -67,20 +67,25 @@ def predict(image_path, model):
     test_loader = torch.utils.data.DataLoader(
         test_dataset, batch_size=1, shuffle=False, num_workers=4
     )
-    predictions = Engine.predict(test_loader, model, device=device)
+    predictions = Engine.predict(test_loader, model, device=DEVICE)
     predictions = np.vstack((predictions)).ravel()
     return predictions
 
 
 @app.route('/', methods=['GET', 'POST'])
-def predict():
+def api_predict():
     if request.method == 'POST':
         image_file = request.files['image']
         if image_file:
-            image_file.save(os.path.join(
+            image_location = os.path.join(
                 UPLOAD_FOLDER,
                 image_file.filename
-            ))
+            )
+            image_file.save(image_location)
+
+            preds = predict(image_path=image_location, model=MODEL)
+            print(preds)
+
             return render_template('index.html', prediction=1)
 
     return render_template('index.html', prediction=0)
