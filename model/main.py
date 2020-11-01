@@ -12,20 +12,28 @@ from early_stopping import EarlyStopping
 from engine import Engine
 
 
-class SEResNext50(nn.Module):
+class SEResnext50_32x4d(nn.Module):
     def __init__(self, pretrained='imagenet'):
-        super(SEResNext50, self).__init__()
-        self.models = pretrainedmodels.__dict__[
-            'se_resnext50_32x4d'](pretrained=pretrained)
-        self.out = nn.Linear(2048, 1)
+        super(SEResnext50_32x4d, self).__init__()
+
+        self.base_model = pretrainedmodels.__dict__[
+            "se_resnext50_32x4d"
+        ](pretrained=None)
+        if pretrained is not None:
+            self.models = pretrainedmodels.__dict__[
+                'se_resnext50_32x4d'](pretrained=pretrained)
+
+        self.l0 = nn.Linear(2048, 1)
 
     def forward(self, image, targets):
-        bs, _, _, _ = image.shape
-        x = self.models.features(image)
-        x = F.adaptive_avg_pool2d(x, 1)
-        x = x.reshape(bs, -1)
-        out = self.out(x)
-        loss = nn.BCEWithLogitsLoss()(out, targets.reshape(-1, 1).type_as(out))
+        batch_size, _, _, _ = image.shape
+
+        x = self.base_model.features(image)
+        x = F.adaptive_avg_pool2d(x, 1).reshape(batch_size, -1)
+
+        out = self.l0(x)
+        loss = nn.BCEWithLogitsLoss()(out, targets.view(-1, 1).type_as(x))
+
         return out, loss
 
 
