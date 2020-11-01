@@ -95,7 +95,7 @@ def train(fold):
         valid_ds, batch_size=valid_bs, shuffle=False, num_workers=4
     )
 
-    model = SEResNext50(pretrained="imagenet")
+    model = SEResnext50_32x4d(pretrained="imagenet")
     model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
